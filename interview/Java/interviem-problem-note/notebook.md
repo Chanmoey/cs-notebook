@@ -187,5 +187,91 @@ parallel computation for a sequence.
 
 1. immutable/pure
 2. lazy
-3. safty-monad架构
+3. safety-monad架构
 
+# functional & monad
+
+OOP: Mapping of Real Objects on Computer
+
+Functional Programming: Write programs with functions, Core is computing.  
+
+1. no side effects, pure function
+2. parallel
+3. mathematical proof
+4. safety
+5. multiplex
+
+Monad is a monoid on the category of self functors.
+
+Goal: Construct Stream Computing.
+
+1. a generic constructor, like Optional<T>
+2. The Operation that does not change the generic type, the internal is a non-generic calculation. 
+like Optional<R> map (T -> R)
+3. Generic type don't change. for example Optional<Integer> -> Optional<String>, But still
+Optional<T>.
+
+Generic type immutability is the cornerstone of stream computing.
+
+EndFunctor: (A -> B) -> (M<A> -> M<B>)
+
+See Code:
+```java
+public class Event<T> {
+
+    T data;
+
+    public Event(T data) {
+        this.data = data;
+    }
+
+    static class EventData {
+        Integer id;
+        String msg;
+
+        public EventData(Integer id, String msg) {
+            this.id = id;
+            this.msg = msg;
+        }
+
+        @Override
+        public String toString() {
+            return "EventData {id = " + id + ", msg = '" + msg + "'" + "}";
+        }
+    }
+
+    static class Transforms {
+        static  EventData transform(Integer id) {
+            return switch (id) {
+                case 1 -> new EventData(id, "Java");
+                case 2 -> new EventData(id, "Python");
+                case 3 -> new EventData(id, "Golang");
+                default -> new EventData(id, "C");
+            };
+        }
+    }
+
+    @FunctionalInterface
+    interface FN<A, B>{
+        B apply(A a);
+    }
+
+    <B> Event<B> map(FN<T, B> fn) {
+        return new Event<>(fn.apply(this.data));
+    }
+
+    public static void main(String[] args) {
+        Stream<Event<Integer>> s= Stream.of(
+                new Event<>(1),
+                new Event<>(2),
+                new Event<>(3),
+                new Event<>(4)
+        );
+
+        s.map(event -> event.map(Transforms::transform))
+                .forEach(e -> System.out.println(e.data));
+    }
+}
+```
+
+# Buffer
