@@ -275,3 +275,240 @@ public class Event<T> {
 ```
 
 # Buffer
+What is difference between stream and buffer?
+
+Stream is not cache, but sequence of data produced over time. Buffer is used for buffering.
+
+The essence of buffering is queuing, and the essence of streaming is data.
+
+Buffer: FIFO
+
+Core Logic： Concurrency peeks do not last too long.
+
+No Buffer: refusal to provide service, low performance
+
+Using Buffer: queue processing, batch processing
+
+cost of IO: Device -> Kernel Space -> User Space
+
+Device -copy-> Channel -copy-> Buffer -copy-> Thread: three copies
+
+How the buffer works:  
+![](assets/howbufferwork.png)
+
+problem: Handling Chinese garbled characters.
+
+The number of bytes used by UTF8 to represent Chinese characters is uncertain, so half a Chinese
+character can be read from the cache, resulting in garbled characters.
+
+```java
+public class ProcessChinese {
+
+    private static final String POETRY = "斜髻娇娥夜卧迟，梨花风静鸟栖枝。难将心事和人说，说与青天明月知。";
+
+    public static void processChinese() {
+        var charset = StandardCharsets.UTF_8;
+        var bytes = POETRY.getBytes();
+
+        int length = bytes.length;
+        int index = 0;
+        int step = 10;
+        int bufLen = step + 1;
+
+        var bbuf = ByteBuffer.allocate(bufLen);
+        var cbuf = CharBuffer.allocate(bufLen);
+        int diff = 0;
+        while (index + step - diff <= length) {
+
+            var buff = Arrays.copyOfRange(bytes, index, index + step - diff);
+            index += step - diff;
+
+            bbuf.put(buff);
+            bbuf.flip();
+            charset.newDecoder().decode(bbuf, cbuf, true);
+            cbuf.flip();
+            var tmp = new char[cbuf.length()];
+
+            while (cbuf.hasRemaining()) {
+                cbuf.get(tmp);
+                System.out.println("new: " + new String(tmp));
+            }
+            diff = bbuf.limit() - bbuf.position();
+            if (diff > 0) {
+                var temp = Arrays.copyOfRange(bbuf.array(), bbuf.position(), bbuf.limit());
+                bbuf.clear();
+                bbuf.put(temp);
+            } else {
+                bbuf.clear();
+            }
+            cbuf.clear();
+        }
+
+        var buff = Arrays.copyOfRange(bytes, index, length);
+        bbuf.put(buff);
+        bbuf.flip();
+        charset.newDecoder().decode(bbuf, cbuf, true);
+        cbuf.flip();
+        var tmp = new char[cbuf.length()];
+
+        while (cbuf.hasRemaining()) {
+            cbuf.get(tmp);
+            System.out.println("here: " + new String(tmp));
+        }
+    }
+
+    public static void main(String[] args) {
+        ProcessChinese.processChinese();
+    }
+}
+```
+
+problem: count the number of words
+```java
+public class WordCount {
+
+    static final ForkJoinPool pool = ForkJoinPool.commonPool();
+
+    /**
+     * sync one thread
+     * <p>
+     * time: 78688ms
+     */
+    public static void compareWithSingle() throws IOException {
+        var in = new BufferedInputStream(new FileInputStream("word"));
+        var buf = new byte[4 * 1024];
+        var len = 0;
+        var total = new HashMap<String, Integer>();
+        var startTime = System.currentTimeMillis();
+        while ((len = in.read(buf)) != -1) {
+            var bytes = Arrays.copyOfRange(buf, 0, len);
+            var str = new String(bytes);
+            var hashMap = countByString(str);
+            for (var entry : hashMap.entrySet()) {
+                var key = entry.getKey();
+                incKey(key, total, entry.getValue());
+            }
+        }
+        in.close();
+        System.out.println("time: " + (System.currentTimeMillis() - startTime) + "ms");
+        System.out.println(total.get("ababb"));
+        System.out.println(total.size());
+    }
+
+    private static Map<String, Integer> countByString(String str) {
+        var map = new HashMap<String, Integer>();
+        StringTokenizer tokenizer = new StringTokenizer(str);
+        while (tokenizer.hasMoreTokens()) {
+            var word = tokenizer.nextToken();
+            incKey(word, map, 1);
+        }
+
+        return map;
+    }
+
+    private static void incKey(String key, Map<String, Integer> map, Integer n) {
+        if (map.containsKey(key)) {
+            map.put(key, map.get(key) + n);
+        } else {
+            map.put(key, n);
+        }
+    }
+
+    class CountTask implements Callable<Map<String, Integer>> {
+
+        private final String fileName;
+
+        private final long start;
+
+        private final long end;
+
+        public CountTask(String fileName, long start, long end) {
+            this.fileName = fileName;
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public Map<String, Integer> call() throws Exception {
+            var channel = new RandomAccessFile(this.fileName, "rw").getChannel();
+
+            // [start, end] -> Memory
+            // Device -> Kernel Space -> UserSpace(buffer) -> Thread
+            // Device -> Kernel Space -map-> Thread
+            var mbuf = channel.map(FileChannel.MapMode.READ_ONLY, start, end - start);
+
+            var str = StandardCharsets.US_ASCII.decode(mbuf).toString();
+            channel.close();
+            return countByString(str);
+        }
+    }
+
+    public void run(String fileName, long chunkSize) throws ExecutionException, InterruptedException {
+        var file = new File(fileName);
+        var fileSize = file.length();
+
+        long startTime = System.currentTimeMillis();
+
+        long position = 0;
+        List<ForkJoinTask<Map<String, Integer>>> taskArray = new ArrayList<>();
+        while (position < fileSize) {
+            long end = Math.min(position + chunkSize, fileSize);
+            var result = pool.submit(new CountTask(fileName, position, end));
+            position = end;
+            taskArray.add(result);
+        }
+
+        Map<String, Integer> totalMap = new HashMap<>();
+        for (var task : taskArray) {
+            Map<String, Integer> map = task.get();
+            for (var entry : map.entrySet()) {
+                incKey(entry.getKey(), totalMap, entry.getValue());
+            }
+        }
+        System.out.println("split to tasks " + taskArray.size());
+        System.out.println("time: " + (System.currentTimeMillis() - startTime) + "ms");
+        System.out.println("ababb: " + totalMap.get("ababb"));
+        System.out.println("total word: " + totalMap.size());
+    }
+
+    public static void main(String[] args) throws IOException, ExecutionException, InterruptedException {
+        System.out.println(Runtime.getRuntime().availableProcessors());
+        WordCount wordCount = new WordCount();
+        wordCount.run("word", 1024 * 1024 * 32);
+//        compareWithSingle();
+    }
+}
+```
+
+# reflection
+reflection:  
+1. View, review the internal structure of the program at runtime, and even modify
+the program.
+
+data(MetaData) at runtime: module, class, function, annotation, source code...
+
+find a class and invoke some method of that class with a string.
+
+Aspect Oriented Programming: 
+1. Separation of Concern
+
+Aspect: Program have one primary concern, and multiple other concerns.
+
+How let primary concern and other work together?
+1. when(before, after, around....)
+2. what
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
