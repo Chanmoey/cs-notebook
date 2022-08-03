@@ -6,7 +6,8 @@
 4. Don‘t be led away by interviewer
 5. Give thoughtful answers
 
-# Java Collections
+# Java Basics
+## Java Collections
 
 ![](/assets/umlofcollection.png)
 
@@ -75,7 +76,7 @@ public interface Collection<E> extends Iterable<E> {
 }
 ```
 
-## Set
+### Set
 
 The Set extends Collection, But the element in set is cannot be repeated.
 
@@ -94,7 +95,7 @@ whether an element is in the set only takes O(1).
 And, TreeSet Cannot insert null, Because the element of TreeSet must
 be comparable. But HashSet can insert null.
 
-## Map
+### Map
 
 Map: Correspondence between two sets.
 
@@ -174,7 +175,7 @@ Summarize：
 2. HashMap is a Map which implemented with a hash table.
 3. TreeSet is a Set which implemented with a tree.
 
-# Stream<T>
+## Stream<T>
 Stream is not cache, but sequence of data produced over time. And Stream provide sequential, 
 parallel computation for a sequence.
 
@@ -189,7 +190,7 @@ parallel computation for a sequence.
 2. lazy
 3. safety-monad架构
 
-# functional & monad
+## functional & monad
 
 OOP: Mapping of Real Objects on Computer
 
@@ -274,7 +275,7 @@ public class Event<T> {
 }
 ```
 
-# Buffer
+## Buffer
 What is difference between stream and buffer?
 
 Stream is not cache, but sequence of data produced over time. Buffer is used for buffering.
@@ -480,7 +481,7 @@ public class WordCount {
 }
 ```
 
-# reflection
+## reflection
 reflection:  
 1. View, review the internal structure of the program at runtime, and even modify
 the program.
@@ -498,11 +499,27 @@ How let primary concern and other work together?
 1. when(before, after, around....)
 2. what
 
+## Metaprogramming
+The data of the data is the metadata.
+
+The metadata of program is program(The program is data)
+
+MateProgramming: A program can use another program as data. (reflection, 
+eval, macro)
+
+usefulness:  
+1. code generation
+2. Implement programming framework(AspectJ, SpringAOP)
+3. R&D DSL(Java executes LUA)
 
 
+# Data Structures and Algorithms
+## Sorting Algorithm
 
-
-
+Advances in sorting algorithms:
+1. +1 -1
+2. divide and conquer
+3. hash function
 
 
 
