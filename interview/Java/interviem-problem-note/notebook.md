@@ -521,6 +521,8 @@ Advances in sorting algorithms:
 2. divide and conquer
 3. hash function
 
+## Link
+abstract data structure
 
 
 
