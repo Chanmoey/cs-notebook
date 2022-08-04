@@ -10,3 +10,5 @@
 /ZeppelinRemoteNotebooks/
 
 ../target
+
+sonarlint/issuestore/index.pb
