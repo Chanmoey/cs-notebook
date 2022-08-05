@@ -524,10 +524,6 @@ Advances in sorting algorithms:
 ## Link
 abstract data structure
 
+## Tree
 
-
-
-
-
-
-
+## Queue & Stack
