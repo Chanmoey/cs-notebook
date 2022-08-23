@@ -7,6 +7,7 @@
 5. Give thoughtful answers
 
 # Java Basics
+
 ## Java Collections
 
 ![](/assets/umlofcollection.png)
@@ -176,7 +177,8 @@ Summarize：
 3. TreeSet is a Set which implemented with a tree.
 
 ## Stream<T>
-Stream is not cache, but sequence of data produced over time. And Stream provide sequential, 
+
+Stream is not cache, but sequence of data produced over time. And Stream provide sequential,
 parallel computation for a sequence.
 
 1. functional programming
@@ -194,7 +196,7 @@ parallel computation for a sequence.
 
 OOP: Mapping of Real Objects on Computer
 
-Functional Programming: Write programs with functions, Core is computing.  
+Functional Programming: Write programs with functions, Core is computing.
 
 1. no side effects, pure function
 2. parallel
@@ -207,16 +209,17 @@ Monad is a monoid on the category of self functors.
 Goal: Construct Stream Computing.
 
 1. a generic constructor, like Optional<T>
-2. The Operation that does not change the generic type, the internal is a non-generic calculation. 
-like Optional<R> map (T -> R)
+2. The Operation that does not change the generic type, the internal is a non-generic calculation.
+   like Optional<R> map (T -> R)
 3. Generic type don't change. for example Optional<Integer> -> Optional<String>, But still
-Optional<T>.
+   Optional<T>.
 
 Generic type immutability is the cornerstone of stream computing.
 
 EndFunctor: (A -> B) -> (M<A> -> M<B>)
 
 See Code:
+
 ```java
 public class Event<T> {
 
@@ -242,7 +245,7 @@ public class Event<T> {
     }
 
     static class Transforms {
-        static  EventData transform(Integer id) {
+        static EventData transform(Integer id) {
             return switch (id) {
                 case 1 -> new EventData(id, "Java");
                 case 2 -> new EventData(id, "Python");
@@ -253,7 +256,7 @@ public class Event<T> {
     }
 
     @FunctionalInterface
-    interface FN<A, B>{
+    interface FN<A, B> {
         B apply(A a);
     }
 
@@ -262,7 +265,7 @@ public class Event<T> {
     }
 
     public static void main(String[] args) {
-        Stream<Event<Integer>> s= Stream.of(
+        Stream<Event<Integer>> s = Stream.of(
                 new Event<>(1),
                 new Event<>(2),
                 new Event<>(3),
@@ -276,6 +279,7 @@ public class Event<T> {
 ```
 
 ## Buffer
+
 What is difference between stream and buffer?
 
 Stream is not cache, but sequence of data produced over time. Buffer is used for buffering.
@@ -365,6 +369,7 @@ public class ProcessChinese {
 ```
 
 problem: count the number of words
+
 ```java
 public class WordCount {
 
@@ -482,48 +487,175 @@ public class WordCount {
 ```
 
 ## reflection
-reflection:  
+
+reflection:
+
 1. View, review the internal structure of the program at runtime, and even modify
-the program.
+   the program.
 
 data(MetaData) at runtime: module, class, function, annotation, source code...
 
 find a class and invoke some method of that class with a string.
 
-Aspect Oriented Programming: 
+Aspect Oriented Programming:
+
 1. Separation of Concern
 
 Aspect: Program have one primary concern, and multiple other concerns.
 
 How let primary concern and other work together?
+
 1. when(before, after, around....)
 2. what
 
 ## Metaprogramming
+
 The data of the data is the metadata.
 
 The metadata of program is program(The program is data)
 
-MateProgramming: A program can use another program as data. (reflection, 
+MateProgramming: A program can use another program as data. (reflection,
 eval, macro)
 
-usefulness:  
+usefulness:
+
 1. code generation
 2. Implement programming framework(AspectJ, SpringAOP)
 3. R&D DSL(Java executes LUA)
 
-
 # Data Structures and Algorithms
+
 ## Sorting Algorithm
 
 Advances in sorting algorithms:
+
 1. +1 -1
 2. divide and conquer
 3. hash function
 
 ## Link
+
 abstract data structure
 
 ## Tree
 
 ## Queue & Stack
+
+# Concurrency
+
+## processes and threads
+
+Process: a process is an executing copy of a program.
+
+Thread: Threads are lightweight processes.
+
+Concurrent: For a period of time, multiple tasks appear to be running
+at the same time.
+
+Parallel: Multiple tasks are executed simultaneously.
+
+Threads are a concurrency model.
+
+A process is a container of threads.
+
+Threads are used for computing resources(CPU),
+and processes own memory and file resources.
+
+Why we need thread? a process have multiple tasks, and that tasks need
+to execute at the same time.
+
+Main thread: The creation process time follows the created thread.
+
+How to create a thread: a program and the memory address of the entry instruction.
+
+Thread permissions to memory: shared process memory.
+
+| User Space   |
+|--------------|
+| Kernel Space |
+| Hardware     |
+
+Kernel Thread & User Thread: Kernel-level threads are scheduled by the kernel,
+User-level threads are scheduled by the application itself.
+
+Java thread is kernel-level thread. (n-m Mapping)(concurrent)
+
+## Status of Thread
+
+1. Running
+2. Ready
+3. Sleeping
+
+Sleeping contains blocking
+
+Status of Thread in Java:
+1. new/terminated
+2. Runnable
+3. waiting/time_waiting/blocked
+
+Thread.join -> waiting
+
+Thread.sleep -> time_waiting
+
+io -> blocked
+
+Threads do not own resources, only computing power, so the cost of all 
+switching threads is low.
+
+Context Switch: 
+1. save the status of current thread(The data stored in the CPU register)
+2. re-execute the scheduler, choice other thread to execute.
+
+thread A -> CPU interrupt -> os handles interrupts(save register) -> 
+os scheduler(choice thread B) -> os restore register -> Thread B
+
+## CAS and Atomic
+
+atomic operation
+
+race condition\race hazard: The result depends on the precise timing of the execution.
+
+critical section: The area where two threads are competing(Access shared resources)
+
+1. reduce competition
+2. Compare and Swap or Compare And Set: CPU instructions support,  
+It is required that the user of the instruction must know the original value of this place
+cas(&oldValue, expectedValue, targetValue)
+3. TAS: Use CAS to complete mutual exclusion operations.
+cas fixed some issues and rejected race condition.
+
+CAS in Java: Unsafe Class -- jdk.internal.misc.Unsafe
+
+Solve ABA problem: AtomicMarketableReference/ AtomicStampedReference
+
+## synchronized
+
+perform synchronization: Multiple threads or processes join at a point in time， then
+execute subsequent tasks.
+
+data synchronization: Multiple copies of data are consistent
+
+What is difference in synchronized and ReentrantLock?
+1. ReentrantLock: Non-Blocking(tryLock), support timeout, flexible, support interrupt, Lightweight lock.
+
+sleep:
+1. sleep for a few CPU cycles(spinlock)
+2. timed sleep(Thread.sleep)
+3. Signal sleep, wake up(wait/notify)
+
+Initial improvement:
+![](assets/lock.jpg)
+
+How the ability to sleep/wake up a thread is implemented?
+1. OS provides API to modify the status of the thread.
+2. JVM know which threads are sleep(WaitSet)
+
+Coding: Producer/Consumer
+
+
+
+## AQS(AbstractQueuedSynchronizer)
+Isolate the user from the bottom layer: Users no longer need to use the underlying API provided by the JVM when 
+implementing the synchronization control algorithm
+
+4-10
